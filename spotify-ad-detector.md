@@ -104,7 +104,7 @@ Spotifyデスクトップアプリ（Windows版）。
 理由：
 - `Process.GetProcessesByName` でウィンドウタイトルを1行取得
 - Windows機能との統合が自然
-- `dotnet publish --self-contained -p:PublishSingleFile=true -r win-x64 -c Release` で単一exe配布可能
+- `dotnet publish recorder.csproj --self-contained -p:PublishSingleFile=true -r win-x64 -c Release` で単一exe配布可能
 
 ### 5.3 録音モジュール
 
@@ -248,7 +248,10 @@ var recorder = Process.Start(psi)!;
 // 録音停止
 recorder.StandardInput.WriteLine("q");
 if (!recorder.WaitForExit(5000))
+{
     recorder.Kill();
+    recorder.WaitForExit(); // Kill 後も確実に終了を待つ
+}
 ```
 
 ### 8.5 ポーリング間隔

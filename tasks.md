@@ -42,7 +42,7 @@ _なし_
 - [x] `recorder.csproj` 追加（.NET 10 / Exe）
 - [x] `Program.cs` スタブ 追加
 - [x] `README.md` 追加（セットアップ手順）
-- [x] `spotify-ad-recorder.sln` 追加
+- [x] `spotify-ad-recorder.slnx` 追加（dotnet new sln による .slnx 形式）
 - [x] `renovate.json` 追加（scottlz0310 共有プリセット）
 - [x] `.gitignore` に `shared/` 除外追加
 - [x] `.github/copilot-instructions.md` 追加（AI エージェント向け規約）

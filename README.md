@@ -41,7 +41,7 @@ dotnet run --project recorder.csproj
 ## 単一 exe として発行
 
 ```powershell
-dotnet publish --self-contained -p:PublishSingleFile=true -r win-x64 -c Release
+dotnet publish recorder.csproj --self-contained -p:PublishSingleFile=true -r win-x64 -c Release
 ```
 
 発行先：`bin\Release\net10.0\win-x64\publish\recorder.exe`

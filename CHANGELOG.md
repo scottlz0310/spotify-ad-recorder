@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Program.cs` — 実装スタブ（TODO コメント付きのビルド可能な最小コード）
 - `README.md` — セットアップ・ビルド・発行・WASAPI デバイス確認手順
 - `renovate.json` — scottlz0310 共有プリセット（C#・automerge・schedule・security）
-- `spotify-ad-recorder.sln` — Visual Studio ソリューションファイル
+- `spotify-ad-recorder.slnx` — Visual Studio ソリューションファイル（.slnx 形式）
 - `.github/copilot-instructions.md` — AI エージェント向けプロジェクト規約
 
 ### Changed
