@@ -1,26 +1,47 @@
 using System.Diagnostics;
 
+// User PATH が現在プロセスに反映されていない場合に備えて統合する
+Environment.SetEnvironmentVariable("PATH",
+    Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) + ";" +
+    Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User));
+
 const int PollingIntervalMs = 2000;
 const int FfmpegStopTimeoutMs = 5000;
 const int AdDetectThreshold = 2;
 const string OutputDir = "shared";
-const string AdTitle = "Advertisement";
+const string LogDir = "logs";
+// Spotify のロケールにより広告中タイトルが異なるため複数定義
+var adTitles = new HashSet<string>(StringComparer.Ordinal)
+{
+    "Advertisement",          // 英語ロケール
+    "広告ナシで音楽を聴こう。",  // 日本語ロケール
+};
 
 Directory.CreateDirectory(OutputDir);
+Directory.CreateDirectory(LogDir);
+var logFile = Path.Combine(LogDir, $"recorder_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.log");
+
+void Log(string message)
+{
+    var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}";
+    Console.WriteLine(line);
+    File.AppendAllText(logFile, line + Environment.NewLine);
+}
 
 var state = State.Idle;
 var detectCount = 0;
 Process? recorder = null;
 
-Console.WriteLine("[spotify-ad-recorder] 起動しました。Ctrl+C で終了。");
+Log("[spotify-ad-recorder] 起動しました。Ctrl+C で終了。");
+Log($"[INFO] ログファイル: {logFile}");
 
 Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
     if (recorder is { HasExited: false })
     {
-        Console.WriteLine("[INFO] 終了シグナル受信 — 録音を停止します。");
-        StopRecorder(recorder);
+        Log("[INFO] 終了シグナル受信 — 録音を停止します。");
+        StopRecorder(recorder, Log);
     }
     Environment.Exit(0);
 };
@@ -30,28 +51,29 @@ while (true)
     await Task.Delay(PollingIntervalMs);
 
     var title = GetSpotifyTitle();
+    Log($"[DEBUG] タイトル: \"{title}\"");
 
-    if (title == AdTitle)
+    if (adTitles.Contains(title))
     {
         detectCount++;
-        Console.WriteLine($"[INFO] Advertisement 検知 ({detectCount}/{AdDetectThreshold})");
+        Log($"[INFO] Advertisement 検知 ({detectCount}/{AdDetectThreshold}) title=\"{title}\"");
 
         if (state == State.Idle && detectCount >= AdDetectThreshold)
         {
-            recorder = StartRecorder();
+            recorder = StartRecorder(Log);
             state = State.Recording;
         }
     }
     else
     {
         if (detectCount > 0)
-            Console.WriteLine($"[INFO] タイトル変化: \"{title}\" — カウントリセット");
+            Log($"[INFO] タイトル変化: \"{title}\" — カウントリセット");
 
         detectCount = 0;
 
         if (state == State.Recording)
         {
-            StopRecorder(recorder!);
+            StopRecorder(recorder!, Log);
             recorder = null;
             state = State.Idle;
         }
@@ -62,7 +84,8 @@ static string GetSpotifyTitle()
 {
     try
     {
-        var proc = Process.GetProcessesByName("Spotify").FirstOrDefault(p => p.MainWindowHandle != IntPtr.Zero);
+        var proc = Process.GetProcessesByName("Spotify")
+            .FirstOrDefault(p => !string.IsNullOrEmpty(p.MainWindowTitle));
         return proc?.MainWindowTitle ?? "";
     }
     catch
@@ -71,13 +94,13 @@ static string GetSpotifyTitle()
     }
 }
 
-static Process StartRecorder()
+static Process StartRecorder(Action<string> log)
 {
     var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
     var outputPath = Path.Combine(OutputDir, $"spotify_ad_{timestamp}.wav");
 
     var psi = new ProcessStartInfo("ffmpeg",
-        $"-f wasapi -i loopback \"{outputPath}\"")
+        $"-f dshow -i \"audio=ステレオ ミキサー (Realtek(R) Audio)\" \"{outputPath}\"")
     {
         RedirectStandardInput = true,
         UseShellExecute = false,
@@ -85,26 +108,34 @@ static Process StartRecorder()
     };
 
     var proc = Process.Start(psi)!;
-    Console.WriteLine($"[REC] 録音開始 → {outputPath}");
+    proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) log($"[FFMPEG] {e.Data}"); };
+    proc.BeginErrorReadLine();
+    log($"[REC] 録音開始 → {outputPath}");
     return proc;
 }
 
-static void StopRecorder(Process proc)
+static void StopRecorder(Process proc, Action<string> log)
 {
     try
     {
+        if (proc.HasExited)
+        {
+            log("[WARN] ffmpeg はすでに終了しています。");
+            log("[REC] 録音停止");
+            return;
+        }
         proc.StandardInput.WriteLine("q");
         if (!proc.WaitForExit(FfmpegStopTimeoutMs))
         {
-            Console.WriteLine("[WARN] タイムアウト — ffmpeg を強制終了します。");
+            log("[WARN] タイムアウト — ffmpeg を強制終了します。");
             proc.Kill();
             proc.WaitForExit();
         }
-        Console.WriteLine("[REC] 録音停止");
+        log("[REC] 録音停止");
     }
     catch (Exception ex)
     {
-        Console.Error.WriteLine($"[ERROR] 録音停止に失敗: {ex.Message}");
+        log($"[ERROR] 録音停止に失敗: {ex.Message}");
     }
 }
 
