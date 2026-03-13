@@ -20,12 +20,13 @@ var adTitles = new HashSet<string>(StringComparer.Ordinal)
 Directory.CreateDirectory(OutputDir);
 Directory.CreateDirectory(LogDir);
 var logFile = Path.Combine(LogDir, $"recorder_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.log");
+var logWriter = new StreamWriter(logFile, append: true, System.Text.Encoding.UTF8) { AutoFlush = true };
 
 void Log(string message)
 {
     var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}";
     Console.WriteLine(line);
-    File.AppendAllText(logFile, line + Environment.NewLine);
+    try { logWriter.WriteLine(line); } catch { /* I/O エラー時は stdout のみ継続 */ }
 }
 
 var state = State.Idle;
@@ -43,6 +44,7 @@ Console.CancelKeyPress += (_, e) =>
         Log("[INFO] 終了シグナル受信 — 録音を停止します。");
         StopRecorder(recorder, Log);
     }
+    logWriter.Dispose();
     Environment.Exit(0);
 };
 
@@ -60,8 +62,12 @@ while (true)
 
         if (state == State.Idle && detectCount >= AdDetectThreshold)
         {
-            recorder = StartRecorder(Log);
-            state = State.Recording;
+            var proc = StartRecorder(Log);
+            if (proc is not null)
+            {
+                recorder = proc;
+                state = State.Recording;
+            }
         }
     }
     else
@@ -94,7 +100,7 @@ static string GetSpotifyTitle()
     }
 }
 
-static Process StartRecorder(Action<string> log)
+static Process? StartRecorder(Action<string> log)
 {
     var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
     var outputPath = Path.Combine(OutputDir, $"spotify_ad_{timestamp}.wav");
@@ -107,11 +113,19 @@ static Process StartRecorder(Action<string> log)
         RedirectStandardError = true,
     };
 
-    var proc = Process.Start(psi)!;
-    proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) log($"[FFMPEG] {e.Data}"); };
-    proc.BeginErrorReadLine();
-    log($"[REC] 録音開始 → {outputPath}");
-    return proc;
+    try
+    {
+        var proc = Process.Start(psi)!;
+        proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) log($"[FFMPEG] {e.Data}"); };
+        proc.BeginErrorReadLine();
+        log($"[REC] 録音開始 → {outputPath}");
+        return proc;
+    }
+    catch (Exception ex)
+    {
+        log($"[ERROR] ffmpeg 起動失敗: {ex.Message}");
+        return null;
+    }
 }
 
 static void StopRecorder(Process proc, Action<string> log)

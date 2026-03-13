@@ -41,9 +41,9 @@ spotify-ad-recorder  →  shared/  →  spotify-ad-analyzer
 |------|------|
 | OS | Windows 11 ネイティブ |
 | 言語 | C# / .NET 10 |
-| 外部依存 | ffmpeg（システムPATHに存在すること） |
+| 外部依存 | ffmpeg（システムPATHに存在すること）、VB-Cable（およびWindows音声設定でCABLE Inputをデフォルト出力に設定済み） |
 | Spotify | Freeアカウント（広告が流れること） |
-| 非対応環境 | WSL2・Docker（Windows APIおよびWASAPIの制約により不可） |
+| 非対応環境 | WSL2・Docker（Windows APIの制約により不可） |
 
 Spotify Web API は使用しません。
 アカウント認証・APIキー・OAuth設定は一切不要です。
@@ -71,7 +71,7 @@ spotify-ad-recorder（C# 常駐サービス）
         └── 通常再生検知 → 録音停止トリガ
                 │
                 ▼
-        ffmpeg（WASAPIループバック）
+        ffmpeg（dshow ループバック via VB-Cable）
                 │
                 ▼
         録音ファイル（shared/spotify_ad_*.wav）
@@ -113,7 +113,8 @@ Spotifyデスクトップアプリ（Windows版）。
 **ツール：ffmpeg**
 
 理由：
-- WASAPIループバック録音対応（システム音声をキャプチャ）
+- dshow （DirectShow）でシステム音声をキャプチャ（全公開 ffmpeg ビルドは WASAPI 非対応のため）
+- VB-Cable ・ CABLE Output デバイスを入力に指定
 - CLIで制御可能・自動化に向く
 
 ---
@@ -219,14 +220,16 @@ while (true)
 
 ### 8.4 録音方式
 
-ffmpegのWASAPIループバックでシステム音声をキャプチャします。
+ffmpegの dshow（DirectShow）で VB-Cable 経由のシステム音声をキャプチャします。
+
+> **前提**: VB-Cable（https://vb-audio.com/Cable/）をインストールし、Windows のサウンド設定で「CABLE Input (VB-Audio Virtual Cable)」をデフォルト出力デバイスに設定すること。
 
 ```bash
 # 録音開始
-ffmpeg -f wasapi -i loopback spotify_ad_<timestamp>.wav
+ffmpeg -f dshow -i "audio=CABLE Output (VB-Audio Virtual Cable)" spotify_ad_<timestamp>.wav
 
 # デバイス一覧確認（初期設定時）
-ffmpeg -f wasapi -list_devices true -i dummy
+ffmpeg -f dshow -list_devices true -i ""
 ```
 
 録音停止はffmpegの標準入力に `q` を送ることで**正常終了**させます。
