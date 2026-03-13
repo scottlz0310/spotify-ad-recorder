@@ -100,7 +100,7 @@ static Process StartRecorder(Action<string> log)
     var outputPath = Path.Combine(OutputDir, $"spotify_ad_{timestamp}.wav");
 
     var psi = new ProcessStartInfo("ffmpeg",
-        $"-f dshow -i \"audio=ステレオ ミキサー (Realtek(R) Audio)\" \"{outputPath}\"")
+        $"-f dshow -i \"audio=CABLE Output (VB-Audio Virtual Cable)\" \"{outputPath}\"")
     {
         RedirectStandardInput = true,
         UseShellExecute = false,
