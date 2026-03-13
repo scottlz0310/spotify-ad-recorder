@@ -128,7 +128,7 @@ static Process? StartRecorder(Action<string> log)
     }
 }
 
-static void StopRecorder(Process proc, Action<string> log)
+void StopRecorder(Process proc, Action<string> log)
 {
     try
     {
