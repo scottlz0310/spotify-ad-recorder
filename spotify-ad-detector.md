@@ -104,7 +104,7 @@ Spotifyデスクトップアプリ（Windows版）。
 理由：
 - `Process.GetProcessesByName` でウィンドウタイトルを1行取得
 - Windows機能との統合が自然
-- `dotnet publish --self-contained` でランタイム同梱の自己完結バイナリとして配布可能
+- `dotnet publish recorder.csproj --self-contained -p:PublishSingleFile=true -r win-x64 -c Release` で単一exe配布可能
 
 ### 5.3 録音モジュール
 
@@ -229,7 +229,30 @@ ffmpeg -f wasapi -i loopback spotify_ad_<timestamp>.wav
 ffmpeg -f wasapi -list_devices true -i dummy
 ```
 
-録音停止はffmpegプロセスを**正常終了**させることで行います（例：標準入力へ `q` を送信し、`WaitForExit` で一定時間待機する）。タイムアウトしても終了しない場合に限り、プロセスを強制終了して構いません。
+録音停止はffmpegの標準入力に `q` を送ることで**正常終了**させます。
+`WaitForExit` で一定時間（目安：5秒）待機し、タイムアウト後にのみ `Kill` で強制終了します。
+これによりWAVファイルヘッダが正常に書き込まれ、ファイル破損を防ぎます。
+
+> **ffmpegプロセス起動時に必須の設定**：`StandardInput` へのアクセスには `ProcessStartInfo` で
+> `RedirectStandardInput = true` および `UseShellExecute = false` を設定する必要があります。
+
+```csharp
+// プロセス起動設定（必須）
+var psi = new ProcessStartInfo("ffmpeg", /* args */)
+{
+    RedirectStandardInput = true,
+    UseShellExecute = false,
+};
+var recorder = Process.Start(psi)!;
+
+// 録音停止
+recorder.StandardInput.WriteLine("q");
+if (!recorder.WaitForExit(5000))
+{
+    recorder.Kill();
+    recorder.WaitForExit(); // Kill 後も確実に終了を待つ
+}
+```
 
 ### 8.5 ポーリング間隔
 
@@ -260,8 +283,7 @@ AIエージェントが実装する際は以下の制約を厳守してくださ
 
 - `Program.cs` 単一ファイルで実装する（C# top-level statements）
 - 外部NuGetパッケージは使用しない（標準ライブラリのみ）
-- ffmpegは `System.Diagnostics.Process` で制御する
-- エラーログは標準エラー出力へ出力する（`Console.Error.WriteLine`）
+- ffmpeg停止時は標準入力に `q` を送り正常終了させる（タイムアウト後のみ `Kill`）
 - Spotifyウィンドウが見つからない場合はスキップして継続する
 
 ### やらないこと
