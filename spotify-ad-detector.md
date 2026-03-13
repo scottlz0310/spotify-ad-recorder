@@ -104,7 +104,7 @@ Spotifyデスクトップアプリ（Windows版）。
 理由：
 - `Process.GetProcessesByName` でウィンドウタイトルを1行取得
 - Windows機能との統合が自然
-- `dotnet publish --self-contained` で単一exe配布可能
+- `dotnet publish --self-contained` でランタイム同梱の自己完結バイナリとして配布可能
 
 ### 5.3 録音モジュール
 
