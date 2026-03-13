@@ -6,25 +6,24 @@
 
 ## 進行中
 
-_なし_
+### Phase 1 — 録音機能実装（`feat/implement-recorder`）— 2026-03-13
+
+- [x] `Program.cs` に本体実装（仕様: `spotify-ad-detector.md`）
+  - [x] 定数定義（ポーリング間隔・出力先ディレクトリ・ffmpeg 引数）
+  - [x] `GetSpotifyTitle()` — `Process.GetProcessesByName("Spotify")` でタイトル取得
+  - [x] ポーリングループ（`Task.Delay(2000)` ベース）
+  - [x] 状態機械（IDLE → RECORDING）・誤検知対策（2回連続検知）
+  - [x] `StartRecorder()` — ffmpeg dshow (VB-Cable) 録音開始
+  - [x] `StopRecorder()` — 標準入力に `q` 送信、5秒タイムアウト後 `Kill` + `WaitForExit`
+  - [x] `shared/` ディレクトリの自動作成
+  - [x] ファイル名生成（`spotify_ad_yyyy-MM-dd_HH-mm-ss.wav`）
+  - [x] Ctrl+C ハンドラ（実行中の録音を正常停止してから終了）
+- [x] 動作確認（Spotify Free アカウントで広告を実際に録音）
+- [ ] PR 作成・`main` マージ
 
 ---
 
 ## 未着手
-
-### Phase 1 — 録音機能実装
-
-- [ ] `Program.cs` に本体実装（仕様: `spotify-ad-detector.md`）
-  - [ ] 定数定義（ポーリング間隔・出力先ディレクトリ・ffmpeg 引数）
-  - [ ] `GetSpotifyTitle()` — `Process.GetProcessesByName("Spotify")` でタイトル取得
-  - [ ] ポーリングループ（`Task.Delay(2000)` ベース）
-  - [ ] 状態機械（IDLE → DETECTING → RECORDING）
-  - [ ] `StartRecording()` — ffmpeg WASAPI ループバック録音開始
-  - [ ] `StopRecording()` — 標準入力に `q` 送信、5秒タイムアウト後 `Kill`
-  - [ ] `shared/` ディレクトリの自動作成
-  - [ ] ファイル名生成（`spotify_ad_yyyy-MM-dd_HH-mm-ss.wav`）
-- [ ] 動作確認（Spotify Free アカウントで広告を実際に録音）
-- [ ] PR 作成・`main` マージ
 
 ### Phase 1 — リリース
 

@@ -55,3 +55,4 @@ nunit-*.xml
 
 # Recorded ad audio output
 shared/
+logs/
