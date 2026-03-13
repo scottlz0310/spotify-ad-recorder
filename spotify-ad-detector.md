@@ -229,7 +229,7 @@ ffmpeg -f wasapi -i loopback spotify_ad_<timestamp>.wav
 ffmpeg -f wasapi -list_devices true -i dummy
 ```
 
-録音停止はffmpegプロセスの終了で行います。
+録音停止はffmpegプロセスを**正常終了**させることで行います（例：標準入力へ `q` を送信し、`WaitForExit` で一定時間待機する）。タイムアウトしても終了しない場合に限り、プロセスを強制終了して構いません。
 
 ### 8.5 ポーリング間隔
 
