@@ -31,6 +31,7 @@ void Log(string message)
 
 var state = State.Idle;
 var detectCount = 0;
+var prevTitle = "";
 Process? recorder = null;
 
 Log("[spotify-ad-recorder] 起動しました。Ctrl+C で終了。");
@@ -53,12 +54,18 @@ while (true)
     await Task.Delay(PollingIntervalMs);
 
     var title = GetSpotifyTitle();
-    Log($"[DEBUG] タイトル: \"{title}\"");
+
+    if (title != prevTitle)
+    {
+        Log($"[INFO] タイトル: \"{title}\"");
+        prevTitle = title;
+    }
 
     if (adTitles.Contains(title))
     {
         detectCount++;
-        Log($"[INFO] Advertisement 検知 ({detectCount}/{AdDetectThreshold}) title=\"{title}\"");
+        if (detectCount <= AdDetectThreshold)
+            Log($"[INFO] Advertisement 検知 ({detectCount}/{AdDetectThreshold})");
 
         if (state == State.Idle && detectCount >= AdDetectThreshold)
         {
@@ -72,9 +79,6 @@ while (true)
     }
     else
     {
-        if (detectCount > 0)
-            Log($"[INFO] タイトル変化: \"{title}\" — カウントリセット");
-
         detectCount = 0;
 
         if (state == State.Recording)
