@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build, Lint & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore recorder.csproj
+
+      - name: Build (warnings as errors)
+        run: dotnet build recorder.csproj --no-restore -c Release -p:TreatWarningsAsErrors=true
+
+      - name: Format check
+        run: dotnet format recorder.csproj --verify-no-changes
+
+      - name: Vulnerability scan
+        run: |
+          output=$(dotnet list recorder.csproj package --vulnerable --include-transitive)
+          echo "$output"
+          if echo "$output" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+          echo "No vulnerable packages found."
+
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Build for CodeQL
+        run: dotnet build recorder.csproj -c Release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
