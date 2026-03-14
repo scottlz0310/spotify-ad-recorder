@@ -9,7 +9,11 @@ on:
 jobs:
   build:
     name: Build, Lint & Security
-    runs-on: ubuntu-latest
+    # Windows-only project — run CI on the same platform as the release build
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - uses: actions/checkout@v4
@@ -26,17 +30,24 @@ jobs:
         run: dotnet build recorder.csproj --no-restore -c Release -p:TreatWarningsAsErrors=true
 
       - name: Format check
+        # dotnet format is built into the .NET SDK (since .NET 6); no separate installation needed
         run: dotnet format recorder.csproj --verify-no-changes
 
       - name: Vulnerability scan
+        # Parse JSON output for machine-readable results — avoids fragile text/locale matching
         run: |
-          output=$(dotnet list recorder.csproj package --vulnerable --include-transitive)
-          echo "$output"
-          if echo "$output" | grep -q "has the following vulnerable packages"; then
-            echo "::error::Vulnerable NuGet packages detected"
+          $json = dotnet list recorder.csproj package --vulnerable --include-transitive --format json | ConvertFrom-Json
+          $vulnerable = @(
+            $json.projects.frameworks | ForEach-Object {
+              @($_.topLevelPackages) + @($_.transitivePackages)
+            } | Where-Object { $_.vulnerabilities -and $_.vulnerabilities.Count -gt 0 }
+          )
+          if ($vulnerable.Count -gt 0) {
+            $vulnerable | ForEach-Object { Write-Host "VULNERABLE: $($_.id) @ $($_.resolvedVersion)" }
+            Write-Host "::error::Vulnerable NuGet packages detected"
             exit 1
-          fi
-          echo "No vulnerable packages found."
+          }
+          Write-Host "No vulnerable packages found."
 
   codeql:
     name: CodeQL Security Analysis

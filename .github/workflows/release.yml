@@ -40,7 +40,8 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart('v')
           $content = Get-Content CHANGELOG.md -Raw
           $escaped = [regex]::Escape($version)
-          if ($content -match "(?s)## \[$escaped\][^\n]*\n(.*?)(?=\n## \[|\z)") {
+          # Stop before the --- separator or the next ## section to avoid including the divider
+          if ($content -match "(?s)## \[$escaped\][^\n]*\n(.*?)(?=\n---|\n## \[|\z)") {
             $notes = $Matches[1].Trim()
           } else {
             $notes = "Release ${{ github.ref_name }}"
