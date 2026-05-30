@@ -1,0 +1,14 @@
+# lefthook: spotify-ad-recorder (.NET)
+# pre-commit はステージ済み .cs を dotnet format で整形（CI の format check と同等）
+# pre-push は CI と同じ警告エラー化ビルドで最終ゲート
+pre-commit:
+  commands:
+    format:
+      glob: "*.cs"
+      run: dotnet format recorder.csproj --include {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    build:
+      run: dotnet build recorder.csproj -c Release -p:TreatWarningsAsErrors=true
