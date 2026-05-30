@@ -36,6 +36,14 @@ dotnet build recorder.csproj
 dotnet run --project recorder.csproj
 ```
 
+### Git フック（lefthook）
+
+本リポジトリは [lefthook](https://github.com/evilmartians/lefthook) で pre-commit（`dotnet format`）・pre-push（`dotnet build`）を設定している。**clone 後に一度だけ** `lefthook install` を実行すること（未登録だとフックは動作しない）。
+
+```powershell
+lefthook install
+```
+
 ---
 
 ## 単一 exe として発行

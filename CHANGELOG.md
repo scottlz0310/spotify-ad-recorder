@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-05-30
+
+### Added
+- `lefthook.yml` — lefthook 導入。pre-commit でステージ済み `*.cs` を `dotnet format` 整形、pre-push で `dotnet build -c Release -p:TreatWarningsAsErrors=true`（CI と同等の警告エラー化ビルド）
+
+---
+
 ## [1.0.1] — 2026-03-14
 
 ### Changed
